@@ -1,5 +1,8 @@
 package lobsterdata
 
+// HaltReason represents the reason for a trading halt.
+// Its values are defined according to the corresponding Price field
+// in the LOBSTER csv.
 type HaltReason int64
 
 const (

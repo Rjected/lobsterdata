@@ -24,12 +24,7 @@ func (ls *LOBSTERSubmission) UnmarshalCsvLOBSTER(eventFields []string) (err erro
 		return
 	}
 
-	eventType, err := strconv.ParseUint(eventFields[1], 10, 8)
-	if err != nil {
-		err = fmt.Errorf("Error parsing eventType field in LOBSTER data as uint8: %s", err)
-		return
-	}
-	if eventType != 1 {
+	if Event(eventFields[1]) != Submission {
 		err = fmt.Errorf("Trying to unmarshal a LOBSTER submission from an event that is not a submission is invalid")
 		return
 	}
@@ -69,7 +64,7 @@ func (ls *LOBSTERSubmission) UnmarshalCsvLOBSTER(eventFields []string) (err erro
 func (ls *LOBSTERSubmission) MarshalCsvLOBSTER() (eventFields []string, err error) {
 	eventFields = make([]string, 6)
 	eventFields[0] = fmt.Sprintf("%f", ls.EventSinceMidnight.Seconds())
-	eventFields[1] = "1"
+	eventFields[1] = fmt.Sprintf("%s", Submission)
 	eventFields[2] = fmt.Sprintf("%d", ls.OrderID)
 	eventFields[3] = fmt.Sprintf("%d", ls.Size)
 	eventFields[4] = fmt.Sprintf("%d", ls.Price)

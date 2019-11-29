@@ -18,46 +18,41 @@ type LOBSTERDeletion struct {
 
 // UnmarshalCsvLOBSTER unmarshals a list of strings into a
 // LOBSTERDeletion, given they are parsed from encoding/csv.
-func (ls *LOBSTERDeletion) UnmarshalCsvLOBSTER(eventFields []string) (err error) {
+func (ld *LOBSTERDeletion) UnmarshalCsvLOBSTER(eventFields []string) (err error) {
 	if len(eventFields) != 6 {
-		err = fmt.Errorf("Error unmarshalling LOBSTER submission, data does not have 6 columns")
+		err = fmt.Errorf("Error unmarshalling LOBSTER line, data does not have 6 columns")
 		return
 	}
 
-	eventType, err := strconv.ParseUint(eventFields[1], 10, 8)
-	if err != nil {
-		err = fmt.Errorf("Error parsing eventType field in LOBSTER data as uint8: %s", err)
-		return
-	}
-	if eventType != 1 {
-		err = fmt.Errorf("Trying to unmarshal a LOBSTER submission from an event that is not a submission is invalid")
+	if Event(eventFields[1]) != Deletion {
+		err = fmt.Errorf("Trying to unmarshal a LOBSTER deletion from an event that is not a deletion is invalid")
 		return
 	}
 
 	// Adding a "seconds" to the first field because we want to parse
 	// it as a duration
 	eventFields[0] += "s"
-	if ls.EventSinceMidnight, err = time.ParseDuration(eventFields[0]); err != nil {
+	if ld.EventSinceMidnight, err = time.ParseDuration(eventFields[0]); err != nil {
 		err = fmt.Errorf("Error parsing the time field in LOBSTER data as a duration: %s", err)
 		return
 	}
 
-	if ls.OrderID, err = strconv.ParseUint(eventFields[2], 10, 64); err != nil {
+	if ld.OrderID, err = strconv.ParseUint(eventFields[2], 10, 64); err != nil {
 		err = fmt.Errorf("Error parsing orderid field in LOBSTER data as uint64: %s", err)
 		return
 	}
 
-	if ls.Size, err = strconv.ParseUint(eventFields[3], 10, 64); err != nil {
+	if ld.Size, err = strconv.ParseUint(eventFields[3], 10, 64); err != nil {
 		err = fmt.Errorf("Error parsing size field in LOBSTER data as uint64: %s", err)
 		return
 	}
 
-	if ls.Price, err = strconv.ParseUint(eventFields[4], 10, 64); err != nil {
+	if ld.Price, err = strconv.ParseUint(eventFields[4], 10, 64); err != nil {
 		err = fmt.Errorf("Error parsing price field in LOBSTER data as uint64: %s", err)
 		return
 	}
 
-	if ls.Direction, err = strconv.ParseInt(eventFields[5], 10, 64); err != nil {
+	if ld.Direction, err = strconv.ParseInt(eventFields[5], 10, 64); err != nil {
 		err = fmt.Errorf("Error parsing direction field in LOBSTER data as int64: %s", err)
 		return
 	}
@@ -66,13 +61,13 @@ func (ls *LOBSTERDeletion) UnmarshalCsvLOBSTER(eventFields []string) (err error)
 
 // MarshalLOBSTER marshals a LOBSTERDeletion into a set of strings
 // that can be written using encoding/csv.
-func (ls *LOBSTERDeletion) MarshalCsvLOBSTER() (eventFields []string, err error) {
+func (ld *LOBSTERDeletion) MarshalCsvLOBSTER() (eventFields []string, err error) {
 	eventFields = make([]string, 6)
-	eventFields[0] = fmt.Sprintf("%f", ls.EventSinceMidnight.Seconds())
-	eventFields[1] = "3"
-	eventFields[2] = fmt.Sprintf("%d", ls.OrderID)
-	eventFields[3] = fmt.Sprintf("%d", ls.Size)
-	eventFields[4] = fmt.Sprintf("%d", ls.Price)
-	eventFields[5] = fmt.Sprintf("%d", ls.Direction)
+	eventFields[0] = fmt.Sprintf("%f", ld.EventSinceMidnight.Seconds())
+	eventFields[1] = fmt.Sprintf("%s", Deletion)
+	eventFields[2] = fmt.Sprintf("%d", ld.OrderID)
+	eventFields[3] = fmt.Sprintf("%d", ld.Size)
+	eventFields[4] = fmt.Sprintf("%d", ld.Price)
+	eventFields[5] = fmt.Sprintf("%d", ld.Direction)
 	return
 }

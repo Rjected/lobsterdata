@@ -15,26 +15,21 @@ type LOBSTERTradingHalt struct {
 
 // UnmarshalCsvLOBSTER unmarshals a list of strings into a
 // LOBSTERTradingHalt, given they are parsed from encoding/csv.
-func (ls *LOBSTERTradingHalt) UnmarshalCsvLOBSTER(eventFields []string) (err error) {
+func (lth *LOBSTERTradingHalt) UnmarshalCsvLOBSTER(eventFields []string) (err error) {
 	if len(eventFields) != 6 {
-		err = fmt.Errorf("Error unmarshalling LOBSTER submission, data does not have 6 columns")
+		err = fmt.Errorf("Error unmarshalling LOBSTER line, data does not have 6 columns")
 		return
 	}
 
-	eventType, err := strconv.ParseUint(eventFields[1], 10, 8)
-	if err != nil {
-		err = fmt.Errorf("Error parsing eventType field in LOBSTER data as uint8: %s", err)
-		return
-	}
-	if eventType != 1 {
-		err = fmt.Errorf("Trying to unmarshal a LOBSTER submission from an event that is not a submission is invalid")
+	if Event(eventFields[1]) != TradingHalt {
+		err = fmt.Errorf("Trying to unmarshal a LOBSTER trading halt from an event that is not a trading halt is invalid")
 		return
 	}
 
 	// Adding a "seconds" to the first field because we want to parse
 	// it as a duration
 	eventFields[0] += "s"
-	if ls.EventSinceMidnight, err = time.ParseDuration(eventFields[0]); err != nil {
+	if lth.EventSinceMidnight, err = time.ParseDuration(eventFields[0]); err != nil {
 		err = fmt.Errorf("Error parsing the time field in LOBSTER data as a duration: %s", err)
 		return
 	}
@@ -64,7 +59,7 @@ func (ls *LOBSTERTradingHalt) UnmarshalCsvLOBSTER(eventFields []string) (err err
 		err = fmt.Errorf("Error parsing price field in LOBSTER data as int64: %s", err)
 		return
 	}
-	ls.HaltType = HaltReason(tmpHaltType)
+	lth.HaltType = HaltReason(tmpHaltType)
 
 	var tmpDirection int64
 	if tmpDirection, err = strconv.ParseInt(eventFields[5], 10, 64); err != nil {
@@ -80,13 +75,13 @@ func (ls *LOBSTERTradingHalt) UnmarshalCsvLOBSTER(eventFields []string) (err err
 
 // MarshalLOBSTER marshals a LOBSTERTradingHalt into a set of strings
 // that can be written using encoding/csv.
-func (ls *LOBSTERTradingHalt) MarshalCsvLOBSTER() (eventFields []string, err error) {
+func (lth *LOBSTERTradingHalt) MarshalCsvLOBSTER() (eventFields []string, err error) {
 	eventFields = make([]string, 6)
-	eventFields[0] = fmt.Sprintf("%f", ls.EventSinceMidnight.Seconds())
-	eventFields[1] = "7"
+	eventFields[0] = fmt.Sprintf("%f", lth.EventSinceMidnight.Seconds())
+	eventFields[1] = fmt.Sprintf("%s", TradingHalt)
 	eventFields[2] = "0"
 	eventFields[3] = "0"
-	eventFields[4] = fmt.Sprintf("%d", ls.HaltType)
+	eventFields[4] = fmt.Sprintf("%d", lth.HaltType)
 	eventFields[5] = "-1"
 	return
 }
