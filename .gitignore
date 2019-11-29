@@ -10,3 +10,9 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# lobster json command line tool binary
+lobsterjson
+
+# but not the directory
+!lobsterjson/
