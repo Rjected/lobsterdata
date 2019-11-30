@@ -28,6 +28,10 @@ var (
 	)
 )
 
+type EventList struct {
+	Events []json.Marshaler `json:"events"`
+}
+
 // TODO: add filtering, for example a flag that says "only process
 // entries with this type
 
@@ -60,20 +64,20 @@ func main() {
 		return
 	}
 
-	if lobsterout == nil && tostdout == nil {
+	if lobsterout == nil || tostdout == nil {
 		log.Critical("Must provide either a path for the json output file, or a flag for standard output")
 		return
 	}
 
-	if lobsterpath == nil {
-		log.Critical("Error, the lobster data file path was not specified, please specify a path")
+	if !*tostdout && *lobsterout == "" {
+		log.Critical("Must either provide a filename or pass the --tostdout flag")
 		return
 	}
 
 	var jsonoutput io.Writer
 	var jsonfile *os.File
 	var err error
-	if lobsterout != nil && tostdout == nil {
+	if *lobsterout != "" {
 		log.Info("Creating output json file")
 		outfilename := *lobsterout
 		if jsonfile, err = os.Create(outfilename); err != nil {
@@ -81,111 +85,93 @@ func main() {
 			return
 		}
 		jsonoutput = jsonfile
-	}
-
-	if tostdout != nil {
+	} else if *tostdout {
 		log.Info("Setting json output at stdout")
 		jsonoutput = os.Stdout
 	}
 
 	var actualPath *os.File = *lobsterpath
 	var csvLine []string
-	var jsonLine []byte
+	events := EventList{
+		Events: []json.Marshaler{},
+	}
+
 	csvReader := csv.NewReader(actualPath)
 	lineNum := uint(0)
-
-	// initialize all these pointers, we might need em
-	currSubmission := new(lobsterdata.LOBSTERSubmission)
-	currCancellation := new(lobsterdata.LOBSTERCancellation)
-	currDeletion := new(lobsterdata.LOBSTERDeletion)
-	currExecutionVisible := new(lobsterdata.LOBSTERExecutionVisible)
-	currExecutionHidden := new(lobsterdata.LOBSTERExecutionHidden)
-	currCrossTrade := new(lobsterdata.LOBSTERCrossTrade)
-	currTradingHalt := new(lobsterdata.LOBSTERTradingHalt)
 
 	log.Info("Starting CSV read")
 	for csvLine, err = csvReader.Read(); err == nil; csvLine, err = csvReader.Read() {
 		lineNum++
 		switch lobsterdata.Event(csvLine[1]) {
 		case lobsterdata.Submission:
+			currSubmission := new(lobsterdata.LOBSTERSubmission)
 			if err = currSubmission.UnmarshalCsvLOBSTER(csvLine); err != nil {
 				log.Criticalf("Error unmarshalling csv line into submission: %s", err)
 				return
 			}
-			if jsonLine, err = json.MarshalIndent(currSubmission, "", "\t"); err != nil {
-				log.Criticalf("Error marshalling data into json: %s", err)
-				return
-			}
+			events.Events = append(events.Events, currSubmission)
 		case lobsterdata.Cancellation:
+			currCancellation := new(lobsterdata.LOBSTERCancellation)
 			if err = currCancellation.UnmarshalCsvLOBSTER(csvLine); err != nil {
 				log.Criticalf("Error unmarshalling csv line into cancellation: %s", err)
 				return
 			}
-			if jsonLine, err = json.MarshalIndent(currCancellation, "", "\t"); err != nil {
-				log.Criticalf("Error marshalling data into json: %s", err)
-				return
-			}
+			events.Events = append(events.Events, currCancellation)
 		case lobsterdata.Deletion:
+			currDeletion := new(lobsterdata.LOBSTERDeletion)
 			if err = currDeletion.UnmarshalCsvLOBSTER(csvLine); err != nil {
 				log.Criticalf("Error unmarshalling csv line into Deletion: %s", err)
 				return
 			}
-			if jsonLine, err = json.MarshalIndent(currDeletion, "", "\t"); err != nil {
-				log.Criticalf("Error marshalling data into json: %s", err)
-				return
-			}
+			events.Events = append(events.Events, currDeletion)
 		case lobsterdata.ExecutionVisible:
+			currExecutionVisible := new(lobsterdata.LOBSTERExecutionVisible)
 			if err = currExecutionVisible.UnmarshalCsvLOBSTER(csvLine); err != nil {
 				log.Criticalf("Error unmarshalling csv line into ExecutionVisible: %s", err)
 				return
 			}
-			if jsonLine, err = json.MarshalIndent(currExecutionVisible, "", "\t"); err != nil {
-				log.Criticalf("Error marshalling data into json: %s", err)
-				return
-			}
+			events.Events = append(events.Events, currExecutionVisible)
 		case lobsterdata.ExecutionHidden:
+			currExecutionHidden := new(lobsterdata.LOBSTERExecutionHidden)
 			if err = currExecutionHidden.UnmarshalCsvLOBSTER(csvLine); err != nil {
 				log.Criticalf("Error unmarshalling csv line into ExecutionHidden: %s", err)
 				return
 			}
-			if jsonLine, err = json.MarshalIndent(currExecutionHidden, "", "\t"); err != nil {
-				log.Criticalf("Error marshalling data into json: %s", err)
-				return
-			}
+			events.Events = append(events.Events, currExecutionHidden)
 		case lobsterdata.CrossTrade:
+			currCrossTrade := new(lobsterdata.LOBSTERCrossTrade)
 			if err = currCrossTrade.UnmarshalCsvLOBSTER(csvLine); err != nil {
 				log.Criticalf("Error unmarshalling csv line into CrossTrade: %s", err)
 				return
 			}
-			if jsonLine, err = json.MarshalIndent(currCrossTrade, "", "\t"); err != nil {
-				log.Criticalf("Error marshalling data into json: %s", err)
-				return
-			}
+			events.Events = append(events.Events, currCrossTrade)
 		case lobsterdata.TradingHalt:
+			currTradingHalt := new(lobsterdata.LOBSTERTradingHalt)
 			if err = currTradingHalt.UnmarshalCsvLOBSTER(csvLine); err != nil {
 				log.Criticalf("Error unmarshalling csv line into TradingHalt: %s", err)
 				return
 			}
-			if jsonLine, err = json.MarshalIndent(currTradingHalt, "", "\t"); err != nil {
-				log.Criticalf("Error marshalling data into json: %s", err)
-				return
-			}
+			events.Events = append(events.Events, currTradingHalt)
 		default:
 			log.Error("Encountered invalid data in csv file on line %d", lineNum)
 			continue
-		}
-
-		// there should be something in jsonLine now, also don't worry
-		// about the number of bytes for now
-		if _, err = jsonoutput.Write(jsonLine); err != nil {
-			log.Criticalf("Error writing json to output: %s", err)
-			return
 		}
 
 		if numrows != nil && lineNum == *numrows {
 			log.Info("Done processing data!")
 			break
 		}
+	}
+	if numrows != nil && lineNum == 0 {
+		if err = jsonfile.Close(); err != nil {
+			log.Criticalf("Error closing json file after writing: %s", err)
+			return
+		}
+		if err = actualPath.Close(); err != nil {
+			log.Criticalf("Error closing csv file: %s", err)
+			return
+		}
+		return
 	}
 
 	if err != nil && err != io.EOF {
@@ -199,7 +185,20 @@ func main() {
 		return
 	}
 
-	if jsonfile != nil && tostdout == nil {
+	var jsonLine []byte
+	if jsonLine, err = json.MarshalIndent(events, "", "\t"); err != nil {
+		log.Criticalf("Error marshalling data into json: %s", err)
+		return
+	}
+
+	// there should be something in jsonLine now, also don't worry
+	// about the number of bytes for now
+	if _, err = jsonoutput.Write(jsonLine); err != nil {
+		log.Criticalf("Error writing json to output: %s", err)
+		return
+	}
+
+	if !*tostdout {
 		log.Info("Done writing to json file, closing")
 		if err = jsonfile.Close(); err != nil {
 			log.Criticalf("Error closing json file after writing: %s", err)

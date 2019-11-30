@@ -1,6 +1,7 @@
 package lobsterdata
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -70,4 +71,15 @@ func (lc *LOBSTERCancellation) MarshalCsvLOBSTER() (eventFields []string, err er
 	eventFields[4] = fmt.Sprintf("%d", lc.Price)
 	eventFields[5] = fmt.Sprintf("%d", lc.Direction)
 	return
+}
+
+// MarshalJSON implements the JSONMarshaler interface for this struct.
+func (lc *LOBSTERCancellation) MarshalJSON() (jsonBytes []byte, err error) {
+	return json.Marshal(struct {
+		TheMainEvent LOBSTERCancellation `json:"event"`
+		EventType    Event               `json:"eventtype"`
+	}{
+		TheMainEvent: LOBSTERCancellation(*lc),
+		EventType:    Cancellation,
+	})
 }
