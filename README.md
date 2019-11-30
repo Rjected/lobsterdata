@@ -6,4 +6,4 @@ Go parser for [LOBSTER](https://lobsterdata.com/) academic data.
 This is tested using samples provided by LOBSTER.
 
 ## Demo
-[![asciicast](https://asciinema.org/a/284370.svg)](https://asciinema.org/a/284370)
+[![asciicast](https://asciinema.org/a/284371.svg)](https://asciinema.org/a/284371)
